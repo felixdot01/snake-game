@@ -6,29 +6,56 @@
   <title>🐍 Snake Game</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root { --size: 360px; --box: 20px; }
+    :root { --canvas-size: 360px; --box: 20px; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      margin: 0; background: #222; color: #fff; font-family: system-ui, -apple-system, Arial, sans-serif;
-      display: flex; flex-direction: column; align-items: center; min-height: 100vh; user-select: none;
+      margin: 0;
+      background: #222;
+      color: #fff;
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
     }
     h1 { margin: 16px 0 8px; font-size: 20px; }
     #score { margin: 6px 0 12px; font-size: 18px; }
-    .wrap {
-      width: min(92vw, var(--size));
-      display: flex; flex-direction: column; align-items: center;
+    .container {
+      width: min(92vw, var(--canvas-size));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     canvas {
-      width: 100%; height: auto; background: #111; border: 2px solid #0f0; touch-action: none;
+      width: 100%;
+      height: auto;
+      background: #111;
+      border: 2px solid #0f0;
+      touch-action: none;
     }
     .pad {
-      position: fixed; left: 0; right: 0; bottom: 16px;
-      display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 64px 64px 64px;
-      gap: 8px; place-items: center; justify-content: center; pointer-events: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 16px;
+      display: grid;
+      grid-template-columns: 64px 64px 64px;
+      grid-template-rows: 64px 64px 64px;
+      gap: 8px;
+      place-items: center;
+      justify-content: center;
+      pointer-events: none;
     }
     .pad button {
-      pointer-events: auto; width: 64px; height: 64px; border-radius: 12px; border: 1px solid #555;
-      background: #2b2b2b; color: #fff; font-size: 22px;
+      pointer-events: auto;
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      border: 1px solid #555;
+      background: #2b2b2b;
+      color: #fff;
+      font-size: 22px;
     }
     .pad .empty { opacity: 0; }
     .hint { opacity: .7; font-size: 13px; margin: 10px 0 70px; }
@@ -38,9 +65,9 @@
   <h1>🐍 Snake</h1>
   <div id="score">Score: 0</div>
 
-  <div class="wrap">
+  <div class="container">
     <canvas id="game" width="360" height="360"></canvas>
-    <div class="hint">Tip: Swipe on the board or use the arrow buttons.</div>
+    <div class="hint">Swipe on the board or use the arrows below.</div>
   </div>
 
   <div class="pad">
@@ -61,6 +88,7 @@
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+
     const BOX = 20;
     const CELLS = 18;
     const SIZE = BOX * CELLS;
@@ -71,7 +99,6 @@
     let score = 0;
     let gameOver = false;
 
-    // Keyboard (for desktop)  
     document.addEventListener("keydown", (e) => {
       const k = e.key;
       if (k === "ArrowLeft" && dir !== "RIGHT") dir = "LEFT";
@@ -80,7 +107,6 @@
       else if (k === "ArrowDown" && dir !== "UP") dir = "DOWN";
     });
 
-    // Swipe gestures (for mobile)
     let startX = 0, startY = 0;
     canvas.addEventListener("touchstart", (e) => {
       const t = e.changedTouches[0];
@@ -101,8 +127,7 @@
       }
     }, { passive: true });
 
-    // On-screen buttons  
-    [["up","UP"],["down","DOWN"],["left","LEFT"],["right","RIGHT"]].forEach(([id, d]) => {
+    [["up","UP"], ["down","DOWN"], ["left","LEFT"], ["right","RIGHT"]].forEach(([id, d]) => {
       document.getElementById(id).addEventListener("touchstart", () => setDir(d));
       document.getElementById(id).addEventListener("click", () => setDir(d));
     });
@@ -115,7 +140,10 @@
     }
 
     function randomFood() {
-      return { x: Math.floor(Math.random() * CELLS) * BOX, y: Math.floor(Math.random() * CELLS) * BOX };
+      return {
+        x: Math.floor(Math.random() * CELLS) * BOX,
+        y: Math.floor(Math.random() * CELLS) * BOX
+      };
     }
 
     function collision(head, arr) {
@@ -138,10 +166,10 @@
 
       let nx = snake[0].x;
       let ny = snake[0].y;
-      if (dir === "LEFT") nx -= BOX;
+      if (dir === "LEFT")  nx -= BOX;
       if (dir === "RIGHT") nx += BOX;
-      if (dir === "UP") ny -= BOX;
-      if (dir === "DOWN") ny += BOX;
+      if (dir === "UP")    ny -= BOX;
+      if (dir === "DOWN")  ny += BOX;
 
       if (nx === food.x && ny === food.y) {
         score++;
@@ -151,15 +179,21 @@
         snake.pop();
       }
 
-      const newHead = { x: nx, y: ny };
-      if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE || collision(newHead, snake)) {
+      const head = { x: nx, y: ny };
+      if (
+        nx < 0 ||
+        ny < 0 ||
+        nx >= SIZE ||
+        ny >= SIZE ||
+        collision(head, snake)
+      ) {
         gameOver = true;
         document.getElementById("score").textContent = `💀 Game Over! Score: ${score}`;
         if (tg.sendData) tg.sendData(JSON.stringify({ score }));
         return;
       }
 
-      snake.unshift(newHead);
+      snake.unshift(head);
     }
 
     setInterval(gameLoop, 100);
