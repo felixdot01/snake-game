@@ -1,337 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Fil 🐍 vs Burolashka 🍭</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🐍 Fil vs Burolashka 🍭</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root { --box: 20px; --cells: 18; --canvas: calc(var(--box)*var(--cells)); }
+    :root { --box: 20px; --cells: 18; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      margin: 0; background: #0f1020; color: #f3f3f3; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      display: flex; flex-direction: column; align-items: center; min-height: 100vh; user-select: none;
-      background-image: radial-gradient(1200px 600px at 70% -10%, #4433aa22, transparent),
-                        radial-gradient(800px 400px at -20% 60%, #00ffaa11, transparent);
+      margin: 0; background: #0f1020; color: #f3f3f3;
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; user-select: none;
+      background-image: radial-gradient(1000px 600px at 50% -20%, #4b008233, transparent),
+                        radial-gradient(800px 400px at -20% 60%, #00ffaa22, transparent);
     }
-    header { width: 100%; max-width: 480px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-    .brand { font-weight: 700; letter-spacing: .3px }
-    .pill {
-      background:#1b1d36; border:1px solid #2d3159; padding:6px 10px; border-radius:999px; font-size:14px;
-      display:flex; gap:10px; align-items:center;
+    h1 { margin: 12px 0; font-size: 24px; }
+    #score { font-size: 18px; margin-bottom: 8px; }
+    canvas { background: #0a0b18; border: 3px solid #2d3159; border-radius: 10px; }
+    #start, #over {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(15, 16, 32, 0.95); text-align: center;
     }
-    .wrap { width:min(92vw, var(--canvas)); display:flex; flex-direction:column; align-items:center; gap:10px; }
-    canvas { width:100%; height:auto; background:#0a0b18; border:2px solid #2d3159; border-radius:10px; box-shadow:0 10px 30px #0006; }
-    .hud { width:100%; display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .hud .score { font-size:16px; padding:6px 10px; background:#1b1d36; border:1px solid #2d3159; border-radius:8px; }
-    .hud .controls { display:flex; gap:8px; }
-    button.ctrl {
-      border:1px solid #2d3159; background:#1b1d36; color:#fff; padding:6px 10px; border-radius:8px; font-size:14px;
+    #play, #restart {
+      padding: 14px 24px; background: #2e7d32; color: #fff;
+      font-size: 20px; border: none; border-radius: 12px;
+      cursor: pointer; margin-top: 16px;
     }
-    button.ctrl:active { transform: translateY(1px); }
-    .start, .overlay {
-      position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; padding:20px;
-      background: linear-gradient(0deg, #0f1020ee, #0f1020ee);
-    }
-    .card {
-      width:min(92vw, 420px); background:#12142a; border:1px solid #2d3159; border-radius:16px; padding:20px;
-      display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 20px 50px #0008;
-    }
-    .title { font-size:22px; font-weight:700; }
-    .subtitle { opacity:.8; font-size:14px; }
-    .bigplay {
-      display:inline-flex; align-items:center; gap:10px; padding:12px 18px; border-radius:999px;
-      background:#2e7d32; border:1px solid #3aa042; color:#fff; font-size:16px; cursor:pointer;
-    }
-    .bigplay:active { transform: translateY(1px); }
-    .note { font-size:13px; opacity:.8 }
+    #play:hover, #restart:hover { background: #3aa042; }
     .pad {
-      position: fixed; left: 0; right: 0; bottom: 18px;
-      display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 64px 64px 64px;
-      gap: 8px; place-items: center; justify-content: center; pointer-events: none;
+      position: fixed; bottom: 16px; left: 0; right: 0;
+      display: grid; grid-template-columns: 64px 64px 64px;
+      grid-template-rows: 64px 64px 64px; gap: 8px;
+      place-items: center; justify-content: center;
+      pointer-events: none;
     }
-    .pad button { pointer-events: auto; width:64px; height:64px; border-radius:14px; border:1px solid #2d3159; background:#151734; color:#fff; font-size:22px; }
-    .pad .empty{opacity:0}
-    .toast {
-      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-      background:#1b1d36; border:1px solid #2d3159; padding:8px 12px; border-radius:999px; font-size:14px; opacity:.95;
+    .pad button {
+      pointer-events: auto; width: 64px; height: 64px;
+      border-radius: 12px; border: 2px solid #2d3159;
+      background: #1b1d36; color: #fff; font-size: 22px;
     }
-    .fade { animation: fade 2s ease both; }
-    @keyframes fade { from{opacity:0; transform:translate(-50%,-6px)} to{opacity:.95; transform:translate(-50%,0)} }
+    .pad .empty { opacity: 0; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">Fil 🐍 & Burolashka 🍭</div>
-    <div class="pill"><span id="status">Ready</span></div>
-  </header>
+  <h1>🐍 Fil & Burolashka 🍭</h1>
+  <div id="score">Score: 0</div>
+  <canvas id="game" width="360" height="360"></canvas>
 
-  <div class="wrap">
-    <div class="hud">
-      <div class="score">Score: <span id="score">0</span> • Best: <span id="best">0</span></div>
-      <div class="controls">
-        <button id="btnPause" class="ctrl">⏸️ Pause</button>
-        <button id="btnRestart" class="ctrl">🔁 Restart</button>
-      </div>
-    </div>
-    <canvas id="game" width="360" height="360" aria-label="Game board"></canvas>
+  <!-- Start Screen -->
+  <div id="start">
+    <h2>Help Fil 🐍 eat Burolashkas 🍭</h2>
+    <p>Swipe or use arrows to move.<br>Don't hit walls or yourself!</p>
+    <button id="play">▶️ Play</button>
   </div>
 
-  <!-- On-screen D-Pad -->
+  <!-- Game Over Screen -->
+  <div id="over" style="display:none;">
+    <h2>💀 Game Over!</h2>
+    <p id="finalScore"></p>
+    <button id="restart">🔁 Play Again</button>
+  </div>
+
+  <!-- On-screen Controls -->
   <div class="pad" aria-hidden="true">
     <span class="empty"></span><button id="up">▲</button><span class="empty"></span>
     <button id="left">◀</button><span class="empty"></span><button id="right">▶</button>
     <span class="empty"></span><button id="down">▼</button><span class="empty"></span>
   </div>
 
-  <!-- Start Screen (does NOT auto-start) -->
-  <div class="start" id="start">
-    <div class="card">
-      <div class="title">Fil the Snake 🐍</div>
-      <div class="subtitle">Help Fil munch delicious <b>Burolashkas</b> 🍭. Don’t bite your tail!</div>
-      <button id="play" class="bigplay">▶️ Play</button>
-      <div class="note">Swipe on the board or use the arrows. Pause anytime.</div>
-    </div>
-  </div>
-
-  <!-- Game Over Overlay -->
-  <div class="overlay" id="over" style="display:none">
-    <div class="card">
-      <div class="title">Game Over 💀</div>
-      <div class="subtitle">Fil is full… of regrets.</div>
-      <div>Score: <b id="finalScore">0</b></div>
-      <div>Best: <b id="finalBest">0</b></div>
-      <button id="again" class="bigplay">🔁 Play Again</button>
-    </div>
-  </div>
-
-  <div id="toast" class="toast" style="display:none"></div>
-
   <script>
-    // Telegram Mini App
+    // Telegram Mini App (optional)
     const tg = window.Telegram?.WebApp || {};
     tg.ready?.();
     tg.expand?.();
 
-    // Game setup
     const BOX = 20, CELLS = 18, SIZE = BOX * CELLS;
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const elScore = document.getElementById('score');
-    const elBest = document.getElementById('best');
-    const elStatus = document.getElementById('status');
-    const startScreen = document.getElementById('start');
-    const overScreen = document.getElementById('over');
-    const finalScore = document.getElementById('finalScore');
-    const finalBest = document.getElementById('finalBest');
-    const toast = document.getElementById('toast');
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
 
-    // State
-    let snake, dir, food, score, best = Number(localStorage.getItem('bestFil')) || 0;
-    let playing = false, paused = false, over = false, timer = null, speedMs = 140;
+    let snake, dir, food, score, gameOver = false, timer;
 
-    elBest.textContent = best;
+    const startScreen = document.getElementById("start");
+    const overScreen = document.getElementById("over");
+    const finalScoreEl = document.getElementById("finalScore");
 
     function init() {
-      snake = [{x: 9*BOX, y: 9*BOX}];
-      dir = 'RIGHT';
-      food = randFood();
+      snake = [{ x: 9 * BOX, y: 9 * BOX }];
+      dir = "RIGHT";
+      food = randomFood();
       score = 0;
-      playing = false; paused = false; over = false;
-      speedMs = 140;
-      draw(true);
-      setStatus('Ready');
-      elScore.textContent = score;
-    }
-
-    function startGame() {
-      if (playing) return;
-      playing = true; paused = false; over = false;
-      startScreen.style.display = 'none';
-      overScreen.style.display = 'none';
-      setStatus('Playing');
-      loop();
-      showToast('Fil is hungry! 🍭');
-    }
-
-    function pauseGame() {
-      if (!playing || over) return;
-      paused = !paused;
-      document.getElementById('btnPause').textContent = paused ? '▶️ Resume' : '⏸️ Pause';
-      setStatus(paused ? 'Paused' : 'Playing');
-    }
-
-    function endGame() {
-      over = true; playing = false;
+      gameOver = false;
+      document.getElementById("score").textContent = "Score: 0";
       clearInterval(timer);
-      finalScore.textContent = score;
-      best = Math.max(best, score);
-      localStorage.setItem('bestFil', String(best));
-      finalBest.textContent = best;
-      elBest.textContent = best;
-      setStatus('Game Over');
-      overScreen.style.display = 'flex';
-      // Send score to bot if running inside Telegram
-      try { tg.sendData?.(JSON.stringify({ score })); } catch(e) {}
-    }
-
-    function loop() {
-      clearInterval(timer);
-      timer = setInterval(tick, speedMs);
-    }
-
-    function accelerate() {
-      // Slightly faster every 4 candies, minimum cap
-      if (score > 0 && score % 4 === 0) {
-        speedMs = Math.max(70, speedMs - 8);
-        if (playing && !paused) loop();
-      }
-    }
-
-    function setStatus(s) { elStatus.textContent = s; }
-    function showToast(msg) {
-      toast.textContent = msg;
-      toast.style.display = 'inline-block';
-      toast.classList.remove('fade'); void toast.offsetWidth; toast.classList.add('fade');
-      setTimeout(()=>toast.style.display='none', 1800);
-    }
-
-    function randFood() {
-      // ensure not on snake
-      let p;
-      do {
-        p = { x: Math.floor(Math.random()*CELLS)*BOX, y: Math.floor(Math.random()*CELLS)*BOX };
-      } while (snake?.some(s=>s.x===p.x && s.y===p.y));
-      return p;
-    }
-
-    function draw(gridOnly=false) {
-      // background
-      ctx.fillStyle = '#0a0b18';
-      ctx.fillRect(0,0,SIZE,SIZE);
-
-      // faint grid for sophistication
-      ctx.globalAlpha = 0.06;
-      ctx.fillStyle = '#ffffff';
-      for (let i=0;i<CELLS;i++){
-        for (let j=0;j<CELLS;j++){
-          ctx.fillRect(i*BOX, j*BOX, 1, 1);
-        }
-      }
-      ctx.globalAlpha = 1;
-
-      if (gridOnly) {
-        // draw Fil idle head and candy preview
-        drawFood();
-        drawSnake(true);
-        return;
-      }
-
-      drawFood();
-      drawSnake();
-    }
-
-    function drawFood() {
-      // Burolashka 🍭
-      ctx.font = '18px system-ui, Apple Color Emoji';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('🍭', food.x + BOX/2, food.y + BOX/2 + 1);
-    }
-
-    function drawSnake(idle=false) {
-      // Subtle glossy body segments
-      snake.forEach((seg, i) => {
-        const head = i===0;
-        const grad = ctx.createLinearGradient(seg.x, seg.y, seg.x, seg.y+BOX);
-        grad.addColorStop(0, head ? '#6aff6a' : '#3fe53f');
-        grad.addColorStop(1, head ? '#2bdc2b' : '#2ac62a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(seg.x, seg.y, BOX, BOX);
-
-        // Eyes for head (Fil!)
-        if (head) {
-          ctx.fillStyle = '#0a0b18';
-          const eye = 4, offX = dir==='LEFT'?-3:dir==='RIGHT'?3:0, offY = dir==='UP'?-3:dir==='DOWN'?3:0;
-          ctx.beginPath(); ctx.arc(seg.x+BOX/2-4+offX, seg.y+BOX/2-4+offY, 2, 0, Math.PI*2); ctx.fill();
-          ctx.beginPath(); ctx.arc(seg.x+BOX/2+4+offX, seg.y+BOX/2-4+offY, 2, 0, Math.PI*2); ctx.fill();
-          // tongue on idle
-          if (idle) {
-            ctx.fillStyle = '#ff4d6d';
-            ctx.fillRect(seg.x+BOX/2-1, seg.y+BOX-3, 2, 6);
-          }
-        }
-      });
-    }
-
-    function tick() {
-      if (!playing || paused || over) return;
-      // advance head
-      let nx = snake[0].x, ny = snake[0].y;
-      if (dir==='LEFT') nx -= BOX;
-      if (dir==='RIGHT') nx += BOX;
-      if (dir==='UP') ny -= BOX;
-      if (dir==='DOWN') ny += BOX;
-
-      // wall or self hit
-      if (nx<0 || ny<0 || nx>=SIZE || ny>=SIZE || snake.some(s=>s.x===nx && s.y===ny)) {
-        draw(); // final frame
-        return endGame();
-      }
-
-      // eat?
-      if (nx===food.x && ny===food.y) {
-        snake.unshift({x:nx,y:ny});
-        score++;
-        elScore.textContent = score;
-        food = randFood();
-        accelerate();
-        showToast(['Yum!','Crunch!','Munch!','Nom!'][Math.floor(Math.random()*4)] + ' 🍭');
-      } else {
-        snake.pop();
-        snake.unshift({x:nx,y:ny});
-      }
-
       draw();
     }
 
-    // Input: keyboard (desktop), swipe & buttons (mobile)
-    document.addEventListener('keydown', e=>{
-      const k=e.key;
-      if (k==='ArrowLeft' && dir!=='RIGHT') dir='LEFT';
-      else if (k==='ArrowRight' && dir!=='LEFT') dir='RIGHT';
-      else if (k==='ArrowUp' && dir!=='DOWN') dir='UP';
-      else if (k==='ArrowDown' && dir!=='UP') dir='DOWN';
-      else if (k===' '){ pauseGame(); }
+    function startGame() {
+      startScreen.style.display = "none";
+      overScreen.style.display = "none";
+      init();
+      timer = setInterval(loop, 130);
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      gameOver = true;
+      finalScoreEl.textContent = `Final score: ${score}`;
+      overScreen.style.display = "flex";
+    }
+
+    function loop() {
+      if (gameOver) return;
+
+      let nx = snake[0].x;
+      let ny = snake[0].y;
+
+      if (dir === "LEFT") nx -= BOX;
+      if (dir === "RIGHT") nx += BOX;
+      if (dir === "UP") ny -= BOX;
+      if (dir === "DOWN") ny += BOX;
+
+      if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE || collide({ x: nx, y: ny }, snake)) {
+        endGame();
+        return;
+      }
+
+      if (nx === food.x && ny === food.y) {
+        score++;
+        document.getElementById("score").textContent = `Score: ${score}`;
+        food = randomFood();
+      } else {
+        snake.pop();
+      }
+
+      snake.unshift({ x: nx, y: ny });
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = "#0a0b18";
+      ctx.fillRect(0, 0, SIZE, SIZE);
+
+      // Draw food 🍭
+      ctx.font = "20px system-ui, Apple Color Emoji";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🍭", food.x + BOX / 2, food.y + BOX / 2);
+
+      // Draw snake 🐍 Fil
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "#39ff14" : "#00cc44";
+        ctx.fillRect(snake[i].x, snake[i].y, BOX, BOX);
+      }
+    }
+
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * CELLS) * BOX,
+        y: Math.floor(Math.random() * CELLS) * BOX,
+      };
+    }
+
+    function collide(head, arr) {
+      return arr.some((s) => s.x === head.x && s.y === head.y);
+    }
+
+    // Controls (keyboard)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" && dir !== "RIGHT") dir = "LEFT";
+      if (e.key === "ArrowRight" && dir !== "LEFT") dir = "RIGHT";
+      if (e.key === "ArrowUp" && dir !== "DOWN") dir = "UP";
+      if (e.key === "ArrowDown" && dir !== "UP") dir = "DOWN";
     });
 
-    let sx=0, sy=0;
-    canvas.addEventListener('touchstart', e=>{ const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; }, {passive:true});
-    canvas.addEventListener('touchend', e=>{
-      const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
-      if (Math.abs(dx)<20 && Math.abs(dy)<20) return;
-      if (Math.abs(dx)>Math.abs(dy)) { if (dx>0 && dir!=='LEFT') dir='RIGHT'; else if (dx<0 && dir!=='RIGHT') dir='LEFT';}
-      else { if (dy>0 && dir!=='UP') dir='DOWN'; else if (dy<0 && dir!=='DOWN') dir='UP';}
-    }, {passive:true});
+    // Touch swipe
+    let sx = 0, sy = 0;
+    canvas.addEventListener("touchstart", (e) => {
+      const t = e.changedTouches[0];
+      sx = t.clientX; sy = t.clientY;
+    }, { passive: true });
 
-    const setDir = d => {
-      if (d==='LEFT' && dir!=='RIGHT') dir='LEFT';
-      if (d==='RIGHT' && dir!=='LEFT') dir='RIGHT';
-      if (d==='UP' && dir!=='DOWN') dir='UP';
-      if (d==='DOWN' && dir!=='UP') dir='DOWN';
-    };
-    [['up','UP'],['down','DOWN'],['left','LEFT'],['right','RIGHT']].forEach(([id,d])=>{
-      const b=document.getElementById(id);
-      ['touchstart','click'].forEach(ev=>b.addEventListener(ev,e=>{ e.preventDefault?.(); setDir(d); }, {passive:false}));
+    canvas.addEventListener("touchend", (e) => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx;
+      const dy = t.clientY - sy;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0 && dir !== "LEFT") dir = "RIGHT";
+        if (dx < 0 && dir !== "RIGHT") dir = "LEFT";
+      } else {
+        if (dy > 0 && dir !== "UP") dir = "DOWN";
+        if (dy < 0 && dir !== "DOWN") dir = "UP";
+      }
+    }, { passive: true });
+
+    // On-screen buttons
+    [["up", "UP"], ["down", "DOWN"], ["left", "LEFT"], ["right", "RIGHT"]].forEach(([id, d]) => {
+      document.getElementById(id).addEventListener("click", () => {
+        if (d === "LEFT" && dir !== "RIGHT") dir = "LEFT";
+        if (d === "RIGHT" && dir !== "LEFT") dir = "RIGHT";
+        if (d === "UP" && dir !== "DOWN") dir = "UP";
+        if (d === "DOWN" && dir !== "UP") dir = "DOWN";
+      });
     });
 
-    // UI buttons
-    document.getElementById('play').addEventListener('click', startGame);
-    document.getElementById('btnPause').addEventListener('click', pauseGame);
-    document.getElementById('btnRestart').addEventListener('click', ()=>{ init(); startGame(); });
-    document.getElementById('again').addEventListener('click', ()=>{ init(); startGame(); });
+    // Buttons
+    document.getElementById("play").addEventListener("click", startGame);
+    document.getElementById("restart").addEventListener("click", startGame);
 
-    // Boot
-    init(); // shows board & start screen, does NOT auto-run Fil
+    // Initial render
+    init();
   </script>
 </body>
 </html>
